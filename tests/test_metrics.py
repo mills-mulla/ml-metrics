@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
-from mlmetrics.metrics import positive_rate, accuracy, count_between, confusion_matrix, specificity, precision, recall
-from sklearn.metrics import accuracy_score, precision_score, recall_score
+from mlmetrics.metrics import positive_rate, accuracy, count_between, confusion_matrix, specificity, precision, recall, balance_accuracy, f1
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.metrics import confusion_matrix as sk_confusion_matrix
 
 
@@ -138,3 +138,48 @@ def test_trade_off_precision_and_recall():
 
     assert precision(Y_TRUE, [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]) == pytest.approx(1.0)
     assert recall(Y_TRUE,[1, 0, 0, 0, 0, 0, 0, 0, 0, 0]) == pytest.approx(0.25)
+
+def test_balance_accuracy_shared():
+    assert balance_accuracy(Y_TRUE, Y_PRED) == pytest.approx(2 / 3)
+
+def test_f1_shared():
+    assert f1(Y_TRUE, Y_PRED) == pytest.approx(4 / 7)
+
+def test_f1_perfect_prediction():
+    assert f1(Y_TRUE, Y_TRUE) == pytest.approx(1.0)
+   
+def test_f1_all_wrong_prediction():
+    assert f1(Y_TRUE, WRONG) == pytest.approx(0.0)
+
+def test_f1_zero_division():
+    assert f1([0, 0], [0, 1]) == pytest.approx(0.0)
+
+def test_f1_punsishes_imbalances():
+    assert f1([1, 1, 1, 1, 0, 0],[1, 0, 0, 0, 0, 0]) == pytest.approx(0.4)
+
+def test_f1_harmonic_mean_formulas_agree():
+    """ formula [1]. F1 = 2.P.R / (P + R) harmonic mean formula [2]. F1 = 2.TP/(2.TP + FP + FN)"""
+    pass
+
+def test_bad_input_raises():
+    with pytest.raises(ValueError):
+        f1([], []) 
+
+def test_f1_matches_sklearn_f1_score():
+    for seed in range(100):
+        rng = np.random.default_rng(seed)
+        y_true = rng.integers(0, 2, size=50)
+        y_pred = rng.integers(0, 2, size=50)
+
+        assert f1(y_true, y_pred) == pytest.approx(f1_score(y_true, y_pred))
+
+def test_accuracy_misleads_on_imbalance_data():
+    y_true = [1] * 5 + [0] *95
+    y_pred = [0] * 100
+    cm = confusion_matrix(y_true, y_pred)
+
+    assert accuracy(y_true, y_pred) == pytest.approx(0.95)
+    assert  cm.tolist() == [[95, 0], [5, 0]]
+    assert precision(y_true, y_pred) == pytest.approx(0.0)
+    assert recall(y_true, y_pred) == pytest.approx(0.0)
+    assert f1(y_true, y_pred) == pytest.approx(0.0)

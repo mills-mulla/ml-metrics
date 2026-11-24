@@ -52,3 +52,38 @@ def recall(y_true, y_pred):
     fn = cm[1, 0]
     denom = (tp + fn)
     return  _safe_divide_helper(tp, denom)
+
+def balance_accuracy(y_true, y_pred):
+    """ (recall + specificity )/ 2 """
+    return ( recall(y_true, y_pred) + specificity(y_true, y_pred)) / 2
+
+
+def f1(y_true, y_pred):
+    """ formulas  2.P.R / (P + R) and 2.TP / (2.TP + FP + FN)"""
+    p = precision(y_true, y_pred)
+    r = recall(y_true, y_pred)
+    cm = confusion_matrix(y_true, y_pred)
+    tp = cm[1, 1]
+    fn = cm[1, 0]
+    fp = cm[0, 1]
+
+    num_1 = 2 * tp
+    denom_1 = (2 * tp) + fp +fn
+    res_1 = _safe_divide_helper(num_1, denom_1)
+
+    num_2 = 2 * p * r
+    denom_2 = p + r
+    res_2 = _safe_divide_helper(num_2, denom_2)
+
+    imbalance =  (((p + r) / 2) > (res_1 or res_2)) 
+    if imbalance:
+        print("imbalace")
+    
+    return res_1 or res_2 
+
+    
+
+
+    
+
+
