@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
-from mlmetrics.metrics import positive_rate, accuracy, count_between, confusion_matrix
-from sklearn.metrics import accuracy_score 
+from mlmetrics.metrics import positive_rate, accuracy, count_between, confusion_matrix, specificity, precision, recall
+from sklearn.metrics import accuracy_score, precision_score, recall_score
 from sklearn.metrics import confusion_matrix as sk_confusion_matrix
 
 
@@ -86,3 +86,55 @@ def test_matches_sklearn():
         mine = confusion_matrix(y_true, y_pred)
 
         assert np.array_equal(mine, sk_confusion_matrix(y_true, y_pred, labels=[0, 1]))    
+
+def test_specificity_shared():
+    assert specificity(Y_TRUE, Y_PRED) == pytest.approx(5 / 6)
+
+def test_specificity_zero_division():
+    assert specificity([1, 1], [1, 1]) == pytest.approx(0.0)
+
+
+def test_precision_shared():
+    assert precision(Y_TRUE, Y_PRED) == pytest.approx(2 / 3)
+
+def test_recall_shared():
+    assert recall(Y_TRUE, Y_PRED) == pytest.approx(2 / 4)
+
+def test_precision_perfect_prediction():
+    assert precision(Y_TRUE, Y_TRUE) == pytest.approx(1.0)
+
+def test_precision_wrong_prediction():
+    assert precision(Y_TRUE, WRONG) == pytest.approx(0.0)
+
+def test_precision_zero_division():
+    assert precision([1, 0, 1], [0, 0, 0]) == pytest.approx(0.0)
+
+def test_recall_zero_division():
+    assert recall([0, 0], [0, 1])  == pytest.approx(0.0)
+
+def test_bad_input_precision_raises():
+    with pytest.raises(ValueError):
+        precision([], [])
+    
+    with pytest.raises(ValueError):
+        recall([], [])
+
+def test_precision_recall_matches_sklearn():
+    for seed in range(100):
+        rng = np.random.default_rng(seed)
+        y_true = rng.integers(0, 2, size=50)
+        y_pred = rng.integers(0, 2, size=50)
+
+        pre = precision(y_true, y_pred)
+        rec = recall(y_true, y_pred)
+
+        assert pre == pytest.approx(precision_score(y_true, y_pred, zero_division=0))
+        assert rec == pytest.approx(recall_score(y_true, y_pred, zero_division=0)) 
+
+def test_trade_off_precision_and_recall():
+    """ predict all 1's and one correct positive only case """
+    assert precision(Y_TRUE, [1] * 10) == pytest.approx(0.4)
+    assert recall(Y_TRUE,[1] * 10) == pytest.approx(1.0)
+
+    assert precision(Y_TRUE, [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]) == pytest.approx(1.0)
+    assert recall(Y_TRUE,[1, 0, 0, 0, 0, 0, 0, 0, 0, 0]) == pytest.approx(0.25)
