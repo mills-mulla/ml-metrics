@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
-from mlmetrics.metrics import positive_rate, accuracy, count_between, confusion_matrix, specificity, precision, recall, balance_accuracy, f1
+
+from mlmetrics.metrics import positive_rate, accuracy, count_between, confusion_matrix, specificity, precision, recall, balance_accuracy, f1,  _safe_divide_helper
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.metrics import confusion_matrix as sk_confusion_matrix
 
@@ -159,7 +160,15 @@ def test_f1_punsishes_imbalances():
 
 def test_f1_harmonic_mean_formulas_agree():
     """ formula [1]. F1 = 2.P.R / (P + R) harmonic mean formula [2]. F1 = 2.TP/(2.TP + FP + FN)"""
-    pass
+    cm = confusion_matrix(Y_TRUE, Y_PRED)
+    tp = cm[1, 1]
+    fn = cm[1, 0]
+    fp = cm[0, 1]
+
+    num_1 = 2 * tp
+    denom_1 = (2 * tp) + fp +fn
+    res_1 = _safe_divide_helper(num_1, denom_1)
+    assert f1(Y_TRUE, Y_PRED) == pytest.approx(res_1)
 
 def test_bad_input_raises():
     with pytest.raises(ValueError):
